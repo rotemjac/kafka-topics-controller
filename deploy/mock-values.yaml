@@ -1,0 +1,101 @@
+Kind: Job
+FullNameOverride: "topics-service"
+Containers:
+  - Name: "topics-service"
+    Image:
+      Registry: ?.dkr.ecr.us-east-2.amazonaws.com/
+      Name: "ops-temp"
+      Version: "topics-service-1.31"
+      PullPolicy: "IfNotPresent"
+    Env:
+      - name: "CONFIG_FILE_PATH"
+        value: "/etc/config"
+      - name: "CONFIG_FILE_NAME"
+        value: "config.yaml"
+
+      - name: "BOOTSTRAP_SERVER"
+        value: ""
+
+      - name: "TENANT_ID"
+        value: "1234567890"
+
+
+      - name: "DEBUG_SLEEP"
+        value: "true"
+    MountVolumes:
+      - mountPath: /etc/config
+        name: topics-volume
+
+Volumes:
+  - name: topics-volume
+    configMap:
+      name: topics-config
+
+
+Job:
+  Spec:
+    suspend: false
+    parallelism: 1
+    completions: 1
+    backoffLimit: 1
+    completionMode: "Indexed" #/ "Indexed"
+    activeDeadlineSeconds: 1000000
+    ttlSecondsAfterFinished: 30
+  RestartPolicy: Never
+
+
+ArrayConfigMap:
+  Enabled: true
+  Name: topics-config
+  Data:
+    - Name: alert
+      Partitions: 1
+      Replicas: 3
+      RetentionMs: 36000000
+      RetentionBytes: 2000000000
+      MinInSyncReplicas: 2
+    - Name: analysis
+      Partitions: 10
+      Replicas: 2
+      RetentionMs: 18000000
+      RetentionBytes: 2000000000
+      MinInSyncReplicas: 1
+    - Name: heartbeat
+      Partitions: 10
+      Replicas: 2
+      RetentionMs: 18000000
+      RetentionBytes: 53687091200
+      MinInSyncReplicas: 1
+    - Name: security-features
+      Partitions: 8
+      Replicas: 2
+      RetentionMs: 18000000
+      RetentionBytes: 53687091200
+      MinInSyncReplicas: 1
+    - Name: alert-level-update
+      Partitions: 1
+      Replicas: 2
+      RetentionMs: 36000000
+      RetentionBytes: 1000000
+      MinInSyncReplicas: 1
+    - Name: trailblazer
+      Partitions: 1
+      Replicas: 3
+      RetentionMs: 36000000
+      RetentionBytes: 2000000000
+      MinInSyncReplicas: 2
+    - Name: metrics
+      Partitions: 1
+      Replicas: 3
+      RetentionMs: 36000000
+      RetentionBytes: 1000000
+      MinInSyncReplicas: 2
+
+
+
+Security:
+  ServiceAccount:
+    Create: true
+    Name: "" # If empty - value FullNameOverride will be added
+    Annotations:
+      eks.amazonaws.com/role-arn: "arn:aws:iam::?:role/temp-topics-service-role"
